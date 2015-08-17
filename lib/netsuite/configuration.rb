@@ -12,7 +12,7 @@ module NetSuite
 
     def connection(params={}, credentials={})
       Savon.client({
-        wsdl: wsdl,
+        wsdl: credentials[:wsdl].present? ? credentials[:wsdl] : wsdl,
         read_timeout: read_timeout,
         namespaces: namespaces,
         soap_header: auth_header(credentials).update(soap_header),
@@ -106,6 +106,7 @@ module NetSuite
         'xmlns:listAcct'       => "urn:accounting_#{api_version}.lists.webservices.netsuite.com",
         'xmlns:tranBank'       => "urn:bank_#{api_version}.transactions.webservices.netsuite.com",
         'xmlns:tranCust'       => "urn:customers_#{api_version}.transactions.webservices.netsuite.com",
+        'xmlns:tranEmp'        => "urn:employees_#{api_version}.transactions.webservices.netsuite.com",
         'xmlns:tranInvt'       => "urn:inventory_#{api_version}.transactions.webservices.netsuite.com",
         'xmlns:listSupport'    => "urn:support_#{api_version}.lists.webservices.netsuite.com",
         'xmlns:tranGeneral'    => "urn:general_#{api_version}.transactions.webservices.netsuite.com",
