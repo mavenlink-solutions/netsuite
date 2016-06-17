@@ -3,6 +3,12 @@ module NetSuite
     class Sublist
       include Support::Fields
 
+      def self.inherited(subclass)
+        subclass.class_eval do
+          field :replace_all
+        end
+      end
+
       class << self
 
         def sublist(key, klass)
@@ -24,8 +30,6 @@ module NetSuite
 
       end
 
-      field :replace_all
-
       def initialize(attributes = {})
         initialize_from_attributes_hash(attributes)
       end
@@ -34,7 +38,7 @@ module NetSuite
         rec = { "#{record_namespace}:#{sublist_key.to_s.lower_camelcase}" => send(self.sublist_key).map(&:to_record) }
 
         if !replace_all.nil?
-          rec["#{record_namespace}:replaceAll"] = replace_all
+          rec["#{record_namespace}:replaceAll"] = !!replace_all
         end
 
         rec

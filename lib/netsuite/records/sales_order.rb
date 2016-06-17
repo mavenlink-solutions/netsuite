@@ -17,10 +17,17 @@ module NetSuite
         :rev_rec_on_rev_commitment, :sales_effective_date, :ship_date, :shipping_cost, :shipping_tax1_rate, :shipping_tax2_rate, :source,
         :start_date, :status, :sync_partner_teams, :sync_sales_teams, :tax2_total, :tax_rate, :to_be_emailed, :to_be_faxed,
         :to_be_printed, :total_cost_estimate, :tran_date, :tran_id, :tran_is_vsoe_bundle, :vat_reg_num,
-        :vsoe_auto_calc, :linked_tracking_numbers
+        :linked_tracking_numbers, :vsoe_auto_calc, :quantity, :bill_city, :bill_state, :ship_city, :ship_state, :cost_estimate,
+        :amount, :is_ship_address
 
+      # NOTE API >= 2014_2 only
+      field :shipping_address, Address
+      field :billing_address, Address
+
+      # NOTE transaction address fields only applicable for API < 2014_2
       field :transaction_ship_address, ShipAddress
       field :transaction_bill_address, BillAddress
+
       field :item_list,                SalesOrderItemList
       field :custom_field_list,        CustomFieldList
 
@@ -28,7 +35,7 @@ module NetSuite
 
       record_refs :account, :bill_address_list, :created_from, :currency, :custom_form, :department, :discount_item, :entity, :gift_cert,
         :handling_tax_code, :job, :klass, :lead_source, :location, :message_sel, :opportunity, :partner, :posting_period, :promo_code,
-        :sales_group, :sales_rep, :ship_method, :shipping_tax_code, :subsidiary, :terms, :tax_item, :payment_method
+        :sales_group, :sales_rep, :ship_method, :shipping_tax_code, :subsidiary, :terms, :tax_item, :payment_method, :ship_address_list
 
       attr_reader :internal_id
       attr_accessor :external_id
