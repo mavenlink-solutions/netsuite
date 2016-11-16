@@ -4,8 +4,6 @@ module NetSuite
       include Support::Fields
       include Namespaces::TranEmp
 
-      fields :replace_all
-
       def initialize(attributes = {})
         initialize_from_attributes_hash(attributes)
         case attributes[:expense]
@@ -21,7 +19,7 @@ module NetSuite
       end
 
       def to_record
-        { "#{record_namespace}:expenseReportExpense" => expenses.map(&:to_record) }
+        { "#{record_namespace}:expense" => expenses.map(&:to_record) }
       end
     end
   end
