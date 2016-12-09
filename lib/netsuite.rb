@@ -128,6 +128,7 @@ module NetSuite
     autoload :Duration,                         'netsuite/records/duration'
     autoload :Employee,                         'netsuite/records/employee'
     autoload :ExpenseReport,                    'netsuite/records/expense_report'
+    autoload :ExpenseCategory,                  'netsuite/records/expense_category'
     autoload :ExpenseReportExpense,             'netsuite/records/expense_report_expense'
     autoload :ExpenseReportExpenseList,         'netsuite/records/expense_report_expense_list'
     autoload :File,                             'netsuite/records/file'
