@@ -23,6 +23,7 @@ module NetSuite
       field :actual_time,             Duration
       field :time_remaining,          Duration
       field :custom_field_list,       CustomFieldList
+      field :job_resources_list,      JobResourcesList
 
       record_refs :billing_schedule, :category, :currency, :custom_form, :entity_status, :estimate_rev_rec_template, :job_item,
         :job_type, :language, :parent, :subsidiary, :workplace, :customer
@@ -35,6 +36,14 @@ module NetSuite
         @internal_id = attributes.delete(:internal_id) || attributes.delete(:@internal_id)
         @external_id = attributes.delete(:external_id) || attributes.delete(:@external_id)
         initialize_from_attributes_hash(attributes)
+      end
+
+      def to_record
+        rec = super
+        if rec["#{record_namespace}:customFieldList"]
+          rec["#{record_namespace}:customFieldList!"] = rec.delete("#{record_namespace}:customFieldList")
+        end
+        rec
       end
 
     end
