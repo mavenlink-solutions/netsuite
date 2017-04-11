@@ -22,12 +22,14 @@ module NetSuite
         # https://system.netsuite.com/help/helpcenter/en_US/Output/Help/SuiteCloudCustomizationScriptingWebServices/SuiteTalkWebServices/SettingSearchPreferences.html
         # https://webservices.netsuite.com/xsd/platform/v2012_2_0/messages.xsd
 
-        preferences = NetSuite::Configuration.auth_header(credentials).merge(
-          (@options.delete(:preferences) || {}).inject({'platformMsgs:SearchPreferences' => {}}) do |h, (k, v)|
-            h['platformMsgs:SearchPreferences'][k.to_s.lower_camelcase] = v
-            h
-          end
-        )
+        preferences = NetSuite::Configuration.auth_header(credentials)
+          .update(NetSuite::Configuration.soap_header)
+          .merge(
+            (@options.delete(:preferences) || {}).inject({'platformMsgs:SearchPreferences' => {}}) do |h, (k, v)|
+              h['platformMsgs:SearchPreferences'][k.to_s.lower_camelcase] = v
+              h
+            end
+          )
 
         NetSuite::Configuration
           .connection({ soap_header: preferences }, credentials)
@@ -61,8 +63,12 @@ module NetSuite
         criteria = @options[:criteria] || @options
 
         # TODO find cleaner solution for pulling the namespace of the record, which is a instance method
-        example_instance = @klass.new
-        namespace = example_instance.record_namespace
+        namespace = if @klass.respond_to?(:search_class_namespace)
+          @klass.search_class_namespace
+        else
+          @klass.new.record_namespace
+        end
+
         # extract the class name
 
         criteria_structure = {}
@@ -153,6 +159,13 @@ module NetSuite
                   "platformCore:searchValue" => condition[:value].first.to_s,
                   "platformCore:searchValue2" => condition[:value].last.to_s
                 }
+              elsif condition[:value].is_a?(Array) && condition[:operator] == 'between'
+
+                h[element_name] = {
+                  '@operator' => condition[:operator],
+                  "platformCore:searchValue" => condition[:value].first.to_s,
+                  "platformCore:searchValue2" => condition[:value].last.to_s
+                }
               else
                 h[element_name] = {
                   :content! => { "platformCore:searchValue" => condition[:value] },
@@ -166,29 +179,25 @@ module NetSuite
           end
         end
 
-        # TODO this needs to be DRYed up a bit
-
-        if saved_search_id
-          {
+        if saved_search_id || !columns_structure.empty?
+          search_structure = {
             'searchRecord' => {
-              '@savedSearchId' => saved_search_id,
               '@xsi:type' => "#{namespace}:#{class_name}SearchAdvanced",
               :content! => {
                 "#{namespace}:criteria" => criteria_structure
-                # TODO need to optionally support columns here
               }
             }
           }
-        elsif !columns_structure.empty?
-          {
-            'searchRecord' => {
-              '@xsi:type' => "#{namespace}:#{class_name}SearchAdvanced",
-              :content! => {
-                "#{namespace}:criteria" => criteria_structure,
-                "#{namespace}:columns" => columns_structure
-              }
-            }
-          }
+
+          if saved_search_id
+            search_structure['searchRecord']['@savedSearchId'] = saved_search_id
+          end
+
+          if !columns_structure.empty?
+            search_structure['searchRecord'][:content!]["#{namespace}:columns"] = columns_structure
+          end
+
+          search_structure
         else
           {
             'searchRecord' => {

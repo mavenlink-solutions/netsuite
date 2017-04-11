@@ -3,7 +3,9 @@ module NetSuite
     class PaymentMethod
       include Support::Fields
       include Support::RecordRefs
+      include Support::Records
       include Support::Actions
+      include Namespaces::ListAcct
 
       actions :add, :delete, :get, :get_list, :search, :update, :upsert, :upsert_list
 

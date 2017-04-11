@@ -10,13 +10,11 @@ module NetSuite
         when Array
           attributes[:custom_field].each { |custom_field| extract_custom_field(custom_field) }
         end
-        
+
         @custom_fields_assoc = Hash.new
         custom_fields.each do |custom_field|
-          reference_id = custom_field.script_id || custom_field.internal_id
-
           # not all custom fields have an id; https://github.com/NetSweet/netsuite/issues/182
-          if reference_id
+          if reference_id = custom_field.send(reference_id_type)
             @custom_fields_assoc[reference_id.to_sym] = custom_field
           end
         end
@@ -27,7 +25,12 @@ module NetSuite
       end
 
       def delete_custom_field(field)
-        custom_fields.delete_if { |c| c.internal_id.to_sym == field }
+        custom_fields.delete_if do |c|
+          # https://github.com/NetSweet/netsuite/issues/325
+          c.send(reference_id_type) &&
+            c.send(reference_id_type).to_sym == field
+        end
+
         @custom_fields_assoc.delete(field)
       end
 
@@ -38,7 +41,7 @@ module NetSuite
       def custom_fields_by_type(type)
         custom_fields.select { |field| field.type == "platformCore:#{type}" }
       end
-      
+
       def method_missing(sym, *args, &block)
         # read custom field if already set
         if @custom_fields_assoc.include?(sym)
@@ -93,21 +96,31 @@ module NetSuite
       end
 
       private
-        def extract_custom_field(custom_field_data)
-          # TODO this seems brittle, but might sufficient, watch out for this if something breaks
-          if custom_field_data[:"@xsi:type"] == "platformCore:SelectCustomFieldRef"
-            custom_field_data[:value] = CustomRecordRef.new(custom_field_data.delete(:value))
-          end
-
-          custom_fields << CustomField.new(custom_field_data)
+        def reference_id_type
+          @reference_id_type ||= Configuration.api_version >= '2013_2' ? :script_id : :internal_id
         end
 
-        def create_custom_field(internal_id, field_value)
+        def extract_custom_field(custom_field_data)
+          if custom_field_data.kind_of?(CustomField)
+            custom_fields << custom_field_data
+          else
+            attrs = custom_field_data.clone
+
+            if (custom_field_data[:"@xsi:type"] || custom_field_data[:type]) == "platformCore:SelectCustomFieldRef"
+              attrs[:value] = CustomRecordRef.new(custom_field_data[:value])
+            end
+
+            custom_fields << CustomField.new(attrs)
+          end
+        end
+
+        def create_custom_field(reference_id, field_value)
           # all custom fields need types; infer type based on class sniffing
           field_type = case
           when field_value.is_a?(Array)
             'MultiSelectCustomFieldRef'
-          when field_value.is_a?(Hash)
+          when field_value.is_a?(Hash),
+               field_value.is_a?(NetSuite::Records::CustomRecordRef)
             'SelectCustomFieldRef'
           when field_value.is_a?(DateTime),
                field_value.is_a?(Time),
@@ -123,7 +136,7 @@ module NetSuite
           # TODO seems like DateTime doesn't need the iso8601 call
           #      not sure if this is specific to my env though
 
-          custom_field_value = case 
+          custom_field_value = case
           when field_value.is_a?(Hash)
             CustomRecordRef.new(field_value)
           when field_value.is_a?(Date)
@@ -146,13 +159,13 @@ module NetSuite
           end
 
           custom_field = CustomField.new(
-            internal_id: internal_id,
-            value: custom_field_value,
-            type: "#{record_namespace}:#{field_type}"
+            reference_id_type => reference_id,
+            :value => custom_field_value,
+            :type  => "#{record_namespace}:#{field_type}"
           )
 
           custom_fields << custom_field
-          @custom_fields_assoc[internal_id.to_sym] = custom_field
+          @custom_fields_assoc[reference_id.to_sym] = custom_field
         end
     end
   end
