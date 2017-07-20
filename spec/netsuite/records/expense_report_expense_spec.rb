@@ -13,7 +13,7 @@ describe NetSuite::Records::ExpenseReportExpense do
   end
 
   it 'has the specified record refs' do
-    [:category, :currency, :customer, :department, :location, :tax_code].each do |record_ref|
+    [:category, :currency, :customer, :department, :location, :tax_code, :exp_media_item].each do |record_ref|
       expect(expense).to have_record_ref(record_ref)
     end
   end
