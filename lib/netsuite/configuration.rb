@@ -16,7 +16,7 @@ module NetSuite
 
     def connection(params={}, credentials={})
       client = Savon.client({
-        wsdl: cached_wsdl || ((credentials[:wsdl] && !credentials[:wsdl].empty?) ? credentials[:wsdl] : wsdl),
+        wsdl: (credentials[:wsdl] && !credentials[:wsdl].empty?) ? credentials[:wsdl] : wsdl,
         read_timeout: read_timeout,
         namespaces: namespaces,
         soap_header: auth_header(credentials).update(soap_header),
@@ -26,7 +26,6 @@ module NetSuite
         log_level: log_level,
         log: !silent, # turn off logging entirely if configured
       }.update(params))
-      cache_wsdl(client)
       return client
     end
 
