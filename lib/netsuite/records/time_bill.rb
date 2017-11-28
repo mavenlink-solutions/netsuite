@@ -9,8 +9,8 @@ module NetSuite
 
       actions :get, :get_list, :add, :delete, :search, :update, :upsert
 
-      fields :created_date, :is_billable, :last_modified_date, :memo, :override_rate, :paid_externally, :rate, :status,
-             :supervisor_approval, :tran_date, :time_type
+      fields :created_date, :last_modified_date, :memo, :override_rate, :paid_externally, :rate, :status,
+             :supervisor_approval, :tran_date, :time_type, :is_billable
 
       field :custom_field_list,   CustomFieldList
       field :hours,               Duration
