@@ -193,6 +193,8 @@ module NetSuite
     autoload :LocationsList,                    'netsuite/records/locations_list'
     autoload :MatrixOptionList,                 'netsuite/records/matrix_option_list'
     autoload :MemberList,                       'netsuite/records/member_list'
+    autoload :Message,                          'netsuite/records/message'
+    autoload :MessageMediaItemList,             'netsuite/records/message_media_item_list'
     autoload :NonInventorySaleItem,             'netsuite/records/non_inventory_sale_item'
     autoload :NonInventoryPurchaseItem,         'netsuite/records/non_inventory_purchase_item'
     autoload :NonInventoryResaleItem,           'netsuite/records/non_inventory_resale_item'
