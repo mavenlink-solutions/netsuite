@@ -17,7 +17,7 @@ module NetSuite
 
       record_refs :activity, :author, :recipient, :transaction
 
-      field :mediaItemList, MessageMediaItemList
+      field :media_item_list, MessageMediaItemList
 
       attr_reader   :internal_id
       attr_accessor :external_id
