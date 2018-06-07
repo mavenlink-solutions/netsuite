@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe NetSuite::Records::ResourceAllocation do
   let(:resource_allocation) { NetSuite::Records::ResourceAllocation.new }
@@ -9,7 +9,7 @@ describe NetSuite::Records::ResourceAllocation do
     end
   end
 
-  it 'has the right record refs' do
+  it "has the right record refs" do
     [:allocation_resource, :allocation_type, :custom_form, :next_approver, :project, :request_by].each do |rr|
       expect(resource_allocation).to have_record_ref(rr)
     end
