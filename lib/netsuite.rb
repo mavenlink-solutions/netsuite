@@ -221,6 +221,7 @@ module NetSuite
     autoload :Roles,                            'netsuite/records/roles'
     autoload :RecordRef,                        'netsuite/records/record_ref'
     autoload :RecordRefList,                    'netsuite/records/record_ref_list'
+    autoload :ResourceAllocation,               'netsuite/records/resource_allocation'
     autoload :RevRecTemplate,                   'netsuite/records/rev_rec_template'
     autoload :RevRecSchedule,                   'netsuite/records/rev_rec_schedule'
     autoload :RoleList,                         'netsuite/records/role_list'
