@@ -77,7 +77,7 @@ module NetSuite
           @errors = response.errors
 
           if response.success?
-            @internal_id = response.body.try(:[], :@internal_id)
+            @internal_id = response.body[:@internal_id] if response.body.respond_to?(:[])
             true
           else
             false

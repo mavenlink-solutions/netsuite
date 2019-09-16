@@ -195,8 +195,8 @@ describe NetSuite::Records::CreditMemo do
     end
     it 'can represent itself as a SOAP record' do
       record = {
-        'tranCust:email'  => 'something@example.com',
-        'tranCust:tranId' => '4'
+        'tranSales:email'  => 'something@example.com',
+        'tranSales:tranId' => '4'
       }
       expect(memo.to_record).to eql(record)
     end
@@ -204,7 +204,7 @@ describe NetSuite::Records::CreditMemo do
 
   describe '#record_type' do
     it 'returns a string representation of the SOAP type' do
-      expect(memo.record_type).to eql('tranCust:CreditMemo')
+      expect(memo.record_type).to eql('tranSales:CreditMemo')
     end
   end
 
