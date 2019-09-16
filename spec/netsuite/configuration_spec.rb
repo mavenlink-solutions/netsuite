@@ -41,22 +41,6 @@ describe NetSuite::Configuration do
     it 'returns a Savon::Client object that allows requests to the service' do
       expect(config.connection).to be_kind_of(Savon::Client)
     end
-
-    it 'caches the client' do
-      expect(config.wsdl_cache).to be_empty
-      conn = config.connection
-
-      expect(
-        config.wsdl_cache.fetch(config.wsdl)
-      ).to eq(conn)
-    end
-
-    it 'uses cached wsdls' do
-      allow(config).to receive(:cached_wsdl)
-      config.connection
-
-      expect(config).to have_received(:cached_wsdl)
-    end
   end
 
   describe '#wsdl' do
