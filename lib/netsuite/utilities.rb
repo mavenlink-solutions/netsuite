@@ -1,3 +1,5 @@
+require 'date'
+
 module NetSuite
   module Utilities
     extend self
@@ -37,6 +39,36 @@ module NetSuite
       server_time_response.body[:get_server_time_response][:get_server_time_result][:server_time]
     end
 
+    def netsuite_data_center_urls(account_id)
+      data_center_call_response = NetSuite::Configuration.connection({
+        # NOTE force a production WSDL so the sandbox settings are ignored
+        #      as of 1/20/18 NS will start using the account ID to determine
+        #      if a account is sandbox (123_SB1) as opposed to using a sandbox domain
+
+        wsdl: 'https://webservices.netsuite.com/wsdl/v2017_2_0/netsuite.wsdl',
+
+        # NOTE don't inherit default namespace settings, it includes the API version
+        namespaces: {
+          'xmlns:platformCore' => "urn:core_2017_2.platform.webservices.netsuite.com"
+        },
+
+        soap_header: {}
+      }).call(:get_data_center_urls, message: {
+        'platformMsgs:account' => account_id
+      })
+
+      if data_center_call_response.success?
+        data_center_call_response.body[:get_data_center_urls_response][:get_data_center_urls_result][:data_center_urls]
+      else
+        false
+      end
+    end
+
+    # TODO consider what to dop with this duplicate data center implementation
+    def data_center_url(*args)
+      DataCenter.get(*args)
+    end
+
     def backoff(options = {})
       # TODO the default backoff attempts should be customizable the global config
       options[:attempts] ||= 8
@@ -46,7 +78,7 @@ module NetSuite
       begin
         count += 1
         yield
-      rescue Exception => e
+      rescue StandardError => e
         exceptions_to_retry = [
           Errno::ECONNRESET,
           Errno::ETIMEDOUT,
@@ -56,7 +88,9 @@ module NetSuite
           Savon::SOAPFault,
           Savon::InvalidResponseError,
           Zlib::BufError,
-          Savon::HTTPError
+          Savon::HTTPError,
+          SocketError,
+          Net::OpenTimeout
         ]
 
         # available in ruby > 1.9
@@ -65,9 +99,12 @@ module NetSuite
         end
 
         # available in ruby > 2.2.0
-        if defined?(OpenSSL::SSL::SSLErrorWaitReadable)
-          exceptions_to_retry << OpenSSL::SSL::SSLErrorWaitReadable
-        end
+        exceptions_to_retry << IO::EINPROGRESSWaitWritable if defined?(IO::EINPROGRESSWaitWritable)
+        exceptions_to_retry << OpenSSL::SSL::SSLErrorWaitReadable if defined?(OpenSSL::SSL::SSLErrorWaitReadable)
+
+        # depends on the http library chosen
+        exceptions_to_retry << Excon::Error::Timeout if defined?(Excon::Error::Timeout)
+        exceptions_to_retry << Excon::Error::Socket if defined?(Excon::Error::Socket)
 
         if !exceptions_to_retry.include?(e.class)
           raise
@@ -78,11 +115,20 @@ module NetSuite
           # https://github.com/stripe/stripe-netsuite/issues/815
           if !e.message.include?("Only one request may be made against a session at a time") &&
             !e.message.include?('java.util.ConcurrentModificationException') &&
+            !e.message.include?('java.lang.NullPointerException') &&
+            !e.message.include?('java.lang.IllegalStateException') &&
+            !e.message.include?('java.lang.reflect.InvocationTargetException') &&
             !e.message.include?('com.netledger.common.exceptions.NLDatabaseOfflineException') &&
             !e.message.include?('com.netledger.database.NLConnectionUtil$NoCompanyDbsOnlineException') &&
+            !e.message.include?('com.netledger.cache.CacheUnavailableException') &&
+            !e.message.include?('java.lang.IllegalStateException') &&
             !e.message.include?('An unexpected error occurred.') &&
+            !e.message.include?('An unexpected error has occurred.  Technical Support has been alerted to this problem.') &&
             !e.message.include?('Session invalidation is in progress with different thread') &&
+            !e.message.include?('[missing resource APP:ERRORMESSAGE:WS_AN_UNEXPECTED_ERROR_OCCURRED] [missing resource APP:ERRORMESSAGE:ERROR_ID_1]') &&
             !e.message.include?('SuiteTalk concurrent request limit exceeded. Request blocked.') &&
+            # maintenance is the new outage: this message is being used for intermittent errors
+            !e.message.include?('The account you are trying to access is currently unavailable while we undergo our regularly scheduled maintenance.') &&
             !e.message.include?('The Connection Pool is not intialized.') &&
             # it looks like NetSuite mispelled their error message...
             !e.message.include?('The Connection Pool is not intiialized.')
@@ -103,15 +149,16 @@ module NetSuite
 
     def request_failed?(ns_object)
       return false if ns_object.errors.nil? || ns_object.errors.empty?
+      ns_object.errors.any? { |x| x.type == "ERROR" }
+    end
 
-      warnings = ns_object.errors.select { |x| x.type == "WARN" }
-      errors = ns_object.errors.select { |x| x.type == "ERROR" }
+    def get_field_options(recordType, fieldName)
+      options = NetSuite::Records::BaseRefList.get_select_value(
+        field: fieldName,
+        recordType: recordType
+      )
 
-      # warnings.each do |warn|
-      #   log.warn(warn.message, code: warn.code)
-      # end
-
-      return errors.size > 0
+      options.base_refs
     end
 
     def get_item(ns_item_internal_id, opts = {})
@@ -126,6 +173,8 @@ module NetSuite
       ns_item ||= NetSuite::Utilities.get_record(NetSuite::Records::GiftCertificateItem, ns_item_internal_id, opts)
       ns_item ||= NetSuite::Utilities.get_record(NetSuite::Records::KitItem, ns_item_internal_id, opts)
       ns_item ||= NetSuite::Utilities.get_record(NetSuite::Records::SerializedInventoryItem, ns_item_internal_id, opts)
+      ns_item ||= NetSuite::Utilities.get_record(NetSuite::Records::LotNumberedAssemblyItem, ns_item_internal_id, opts)
+      ns_item ||= NetSuite::Utilities.get_record(NetSuite::Records::LotNumberedInventoryItem, ns_item_internal_id, opts)
 
       if ns_item.nil?
         fail NetSuite::RecordNotFound, "item with ID #{ns_item_internal_id} not found"
@@ -189,7 +238,11 @@ module NetSuite
           field_name = 'email'
         end
 
-        field_name ||= 'name'
+        field_name ||= if record.to_s.end_with?('Item')
+          'displayName'
+        else
+          'name'
+        end
 
         # TODO remove backoff when it's built-in to search
         search = backoff { record.search({
@@ -210,25 +263,41 @@ module NetSuite
       nil
     end
 
-    def data_center_url(*args)
-      DataCenter.get(*args)
-    end
-
     # http://mikebian.co/notes-on-dates-timezones-with-netsuites-suitetalk-api/
+    # https://wyeworks.com/blog/2016/6/22/behavior-changes-in-ruby-2.4
+    # https://github.com/rails/rails/commit/c9c5788a527b70d7f983e2b4b47e3afd863d9f48
+
     # assumes UTC0 unix timestamp
     def normalize_time_to_netsuite_date(unix_timestamp)
       # convert to date to eliminate hr/min/sec
-      time = Time.at(unix_timestamp).utc.to_date.to_datetime
+      time = Time.at(unix_timestamp).
+        utc.
+        to_date.
+        to_datetime
 
-      offset = 8
-      time = time.new_offset("-08:00")
+      # tzinfo allows us to determine the dst status of the time being passed in
+      # NetSuite requires that the time be passed to the API with the PDT TZ offset
+      # of the time passed in (i.e. not the current TZ offset of PDT)
 
-      if time.to_time.dst?
-        offset = 7
+      if defined?(TZInfo)
+        # if no version is defined, less than 2.0
+        # https://github.com/tzinfo/tzinfo/blob/master/CHANGES.md#added
+        if !defined?(TZInfo::VERSION)
+          # https://stackoverflow.com/questions/2927111/ruby-get-time-in-given-timezone
+          offset = TZInfo::Timezone.get("America/Los_Angeles").period_for_utc(time).utc_total_offset_rational
+          time = time.new_offset(offset)
+        else
+          time = TZInfo::Timezone.get("America/Los_Angeles").utc_to_local(time)
+          offset = time.offset
+        end
+      else
+        # if tzinfo is not installed, let's give it our best guess: -7
+        offset = Rational(-7, 24)
         time = time.new_offset("-07:00")
       end
 
-      (time + Rational(offset, 24)).iso8601
+      time = (time + (offset * -1))
+      time.iso8601
     end
 
   end
