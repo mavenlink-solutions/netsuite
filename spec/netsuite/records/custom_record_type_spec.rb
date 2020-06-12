@@ -23,6 +23,27 @@ describe NetSuite::Records::CustomRecordType do
     end
   end
 
+  describe "#custom_field_list" do
+    it "can be set from attributes" do
+      attributes = {
+        :custom_field => {
+          :amount => 10,
+          :script_id => "custfield_amount"
+        }
+      }
+      record_type.custom_field_list = attributes
+      expect(record_type.custom_field_list).to be_kind_of(NetSuite::Records::CustomFieldList)
+      expect(record_type.custom_field_list.custom_fields.length).to eql(1)
+      expect(record_type.custom_field_list.custfield_amount.attributes[:amount]).to eq(10)
+    end
+
+    it "can be set from a CustomFieldList object" do
+      custom_field_list = NetSuite::Records::CustomFieldList.new
+      record_type.custom_field_list = custom_field_list
+      expect(record_type.custom_field_list).to eql(custom_field_list)
+    end
+  end
+
   describe '#field_list' do
     it 'can be set from attributes'
     it 'can be set from a CustomRecordTypeFieldList object'

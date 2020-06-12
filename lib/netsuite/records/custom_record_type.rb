@@ -14,6 +14,8 @@ module NetSuite
         :show_id, :show_last_modified, :show_last_modified_on_list, :show_notes, :show_owner, :show_owner_allow_change,
         :show_owner_on_list, :use_permissions
 
+      field :custom_field_list, CustomFieldList
+
       record_ref :owner
 
       attr_reader :internal_id
