@@ -103,6 +103,12 @@ describe NetSuite::Records::Job do
     it 'can be set from a CustomFieldList object'
   end
 
+  # TODO: Spec this
+  describe "#percent_complete_override_list" do
+    it "can be set from attributes"
+    it "can be set from a PercentCompleteOverride object"
+  end
+
   describe '.get' do
     context 'when the response is successful' do
       let(:response) { NetSuite::Response.new(:success => true, :body => { :account_number => 7 }) }

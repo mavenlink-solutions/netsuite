@@ -24,6 +24,7 @@ module NetSuite
       field :time_remaining,          Duration
       field :custom_field_list,       CustomFieldList
       field :job_resources_list,      JobResourcesList
+      field :percent_complete_override_list, JobPercentCompleteOverrideList
 
       record_refs :billing_schedule, :category, :currency, :custom_form, :entity_status, :estimate_rev_rec_template, :job_item,
         :job_type, :language, :parent, :subsidiary, :workplace, :customer
