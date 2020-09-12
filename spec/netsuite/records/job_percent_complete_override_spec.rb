@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe NetSuite::Records::JobPercentCompleteOverride do
   let(:item) { NetSuite::Records::JobPercentCompleteOverride.new }
