@@ -182,6 +182,8 @@ module NetSuite
     autoload :ItemVendor,                       'netsuite/records/item_vendor'
     autoload :ItemVendorList,                   'netsuite/records/item_vendor_list'
     autoload :Job,                              'netsuite/records/job'
+    autoload :JobPercentCompleteOverride,       'netsuite/records/job_percent_complete_override'
+    autoload :JobPercentCompleteOverrideList,   'netsuite/records/job_percent_complete_override_list'
     autoload :JobResources,                     'netsuite/records/job_resources'
     autoload :JobResourcesList,                 'netsuite/records/job_resources_list'
     autoload :JobStatus,                        'netsuite/records/job_status'
