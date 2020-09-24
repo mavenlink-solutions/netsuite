@@ -103,10 +103,22 @@ describe NetSuite::Records::Job do
     it 'can be set from a CustomFieldList object'
   end
 
-  # TODO: Spec this
   describe "#percent_complete_override_list" do
-    it "can be set from attributes"
-    it "can be set from a PercentCompleteOverride object"
+    it "can be set from attributes" do
+      attributes = { job_percent_complete_override: [{ percent: 10 }] }
+
+      job.percent_complete_override_list = attributes
+      expect(job.percent_complete_override_list).to be_kind_of(NetSuite::Records::JobPercentCompleteOverrideList)
+      expect(job.percent_complete_override_list.job_percent_complete_override.first).to be_kind_of(
+        NetSuite::Records::JobPercentCompleteOverride
+      ).and have_attributes(percent: 10)
+    end
+
+    it "can be set from a JobPercentCompleteOverrideList object" do
+      override_list = NetSuite::Records::JobPercentCompleteOverrideList.new
+      job.percent_complete_override_list = override_list
+      expect(job.percent_complete_override_list).to eq override_list
+    end
   end
 
   describe '.get' do
